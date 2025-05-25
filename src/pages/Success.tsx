@@ -1,17 +1,87 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle, Download, Mail, Phone, Home, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useCart } from '@/contexts/CartContext';
 
 const Success: React.FC = () => {
+  const { state: cartState } = useCart();
   const orderNumber = `SC${Date.now().toString().slice(-8)}`;
   const currentDate = new Date().toLocaleDateString('en-IN', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
   });
+
+  const downloadInvoice = () => {
+    // Create invoice content
+    const invoiceContent = `
+SUPERCAR COLLECTION INDIA
+Invoice #${orderNumber}
+Date: ${currentDate}
+
+=====================================
+BILLING INFORMATION
+=====================================
+Order Number: ${orderNumber}
+Payment Status: Confirmed
+Order Date: ${currentDate}
+Estimated Delivery: 2-4 weeks
+
+=====================================
+ORDER DETAILS
+=====================================
+${cartState.items.length > 0 
+  ? cartState.items.map(item => 
+      `${item.car.name} - ${item.car.brand}
+Quantity: ${item.quantity}
+Price: ₹${item.car.price.toLocaleString('en-IN')}
+Subtotal: ₹${(item.car.price * item.quantity).toLocaleString('en-IN')}
+`).join('\n')
+  : 'Supercar Purchase\nQuantity: 1\nPrice: ₹2,50,00,000\nSubtotal: ₹2,50,00,000'
+}
+
+=====================================
+PAYMENT SUMMARY
+=====================================
+${cartState.items.length > 0 
+  ? `Subtotal: ₹${cartState.total.toLocaleString('en-IN')}
+Tax (18% GST): ₹${(cartState.total * 0.18).toLocaleString('en-IN')}
+TOTAL: ₹${(cartState.total * 1.18).toLocaleString('en-IN')}`
+  : `Subtotal: ₹2,50,00,000
+Tax (18% GST): ₹45,00,000
+TOTAL: ₹2,95,00,000`
+}
+
+=====================================
+CONTACT INFORMATION
+=====================================
+Supercar Collection India
+Phone: +91 98765 43210
+Email: orders@supercars.in
+Website: www.supercars.in
+
+Thank you for your purchase!
+Your dream supercar awaits you.
+
+Terms & Conditions:
+- All sales are final
+- Delivery subject to verification
+- GST included in final amount
+`;
+
+    // Create and download the file
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Invoice_${orderNumber}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -60,6 +130,31 @@ const Success: React.FC = () => {
                   <p className="text-lg">2-4 weeks</p>
                 </div>
               </div>
+
+              {/* Order Items */}
+              {cartState.items.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-medium text-muted-foreground mb-4">Items Ordered</h3>
+                  <div className="space-y-3">
+                    {cartState.items.map((item) => (
+                      <div key={item.car.id} className="flex justify-between items-center p-3 bg-muted/30 rounded-lg">
+                        <div>
+                          <p className="font-semibold">{item.car.name}</p>
+                          <p className="text-sm text-muted-foreground">{item.car.brand} • Quantity: {item.quantity}</p>
+                        </div>
+                        <p className="font-semibold">₹{(item.car.price * item.quantity).toLocaleString('en-IN')}</p>
+                      </div>
+                    ))}
+                    <div className="border-t pt-3 mt-3">
+                      <div className="flex justify-between items-center font-bold text-lg">
+                        <span>Total Amount</span>
+                        <span>₹{(cartState.total * 1.18).toLocaleString('en-IN')}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground text-right">Includes 18% GST</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -139,7 +234,11 @@ const Success: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-luxury-gold hover:bg-luxury-gold-dark text-black font-semibold">
+            <Button 
+              size="lg" 
+              className="bg-luxury-gold hover:bg-luxury-gold-dark text-black font-semibold"
+              onClick={downloadInvoice}
+            >
               <Download className="w-4 h-4 mr-2" />
               Download Invoice
             </Button>
