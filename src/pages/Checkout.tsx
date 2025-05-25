@@ -1,16 +1,18 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
-import { CreditCard, Lock, Truck, Shield } from 'lucide-react';
+import { CreditCard, Lock, Truck, Shield, Smartphone, Building, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 const checkoutSchema = z.object({
@@ -22,10 +24,14 @@ const checkoutSchema = z.object({
   state: z.string().min(2, 'State must be at least 2 characters'),
   pincode: z.string().min(6, 'Pincode must be 6 digits'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits'),
-  cardNumber: z.string().min(16, 'Card number must be 16 digits'),
-  expiryDate: z.string().min(5, 'Please enter expiry date (MM/YY)'),
-  cvv: z.string().min(3, 'CVV must be 3 digits'),
-  cardholderName: z.string().min(2, 'Cardholder name is required'),
+  paymentMethod: z.enum(['card', 'upi', 'netbanking', 'wallet']),
+  cardNumber: z.string().optional(),
+  expiryDate: z.string().optional(),
+  cvv: z.string().optional(),
+  cardholderName: z.string().optional(),
+  upiId: z.string().optional(),
+  bankName: z.string().optional(),
+  walletType: z.string().optional(),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -34,6 +40,7 @@ const Checkout: React.FC = () => {
   const { state, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [paymentMethod, setPaymentMethod] = useState('card');
 
   const form = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -46,10 +53,14 @@ const Checkout: React.FC = () => {
       state: '',
       pincode: '',
       phone: '',
+      paymentMethod: 'card',
       cardNumber: '',
       expiryDate: '',
       cvv: '',
       cardholderName: '',
+      upiId: '',
+      bankName: '',
+      walletType: '',
     },
   });
 
@@ -80,6 +91,13 @@ const Checkout: React.FC = () => {
     navigate('/cart');
     return null;
   }
+
+  const paymentOptions = [
+    { id: 'card', label: 'Credit/Debit Card', icon: CreditCard },
+    { id: 'upi', label: 'UPI Payment', icon: Smartphone },
+    { id: 'netbanking', label: 'Net Banking', icon: Building },
+    { id: 'wallet', label: 'Digital Wallet', icon: Wallet },
+  ];
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -217,72 +235,161 @@ const Checkout: React.FC = () => {
                         )}
                       />
 
-                      {/* Payment Information */}
+                      {/* Payment Method Selection */}
                       <Separator className="my-8" />
                       
-                      <div className="space-y-4">
+                      <div className="space-y-6">
                         <h3 className="text-lg font-semibold flex items-center">
                           <Lock className="w-5 h-5 mr-2" />
-                          Payment Information
+                          Payment Method
                         </h3>
 
                         <FormField
                           control={form.control}
-                          name="cardholderName"
+                          name="paymentMethod"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Cardholder Name</FormLabel>
                               <FormControl>
-                                <Input placeholder="Name on card" {...field} />
+                                <RadioGroup
+                                  value={field.value}
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setPaymentMethod(value);
+                                  }}
+                                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                                >
+                                  {paymentOptions.map((option) => (
+                                    <div key={option.id} className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-muted/50">
+                                      <RadioGroupItem value={option.id} id={option.id} />
+                                      <Label htmlFor={option.id} className="flex items-center cursor-pointer flex-1">
+                                        <option.icon className="w-5 h-5 mr-2" />
+                                        {option.label}
+                                      </Label>
+                                    </div>
+                                  ))}
+                                </RadioGroup>
                               </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
 
-                        <FormField
-                          control={form.control}
-                          name="cardNumber"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Card Number</FormLabel>
-                              <FormControl>
-                                <Input placeholder="1234 5678 9012 3456" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        {/* Payment Details Based on Selection */}
+                        {paymentMethod === 'card' && (
+                          <div className="space-y-4 border rounded-lg p-4">
+                            <FormField
+                              control={form.control}
+                              name="cardholderName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Cardholder Name</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Name on card" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="expiryDate"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Expiry Date</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="MM/YY" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                            <FormField
+                              control={form.control}
+                              name="cardNumber"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Card Number</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="1234 5678 9012 3456" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                          <FormField
-                            control={form.control}
-                            name="cvv"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>CVV</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="123" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="expiryDate"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Expiry Date</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="MM/YY" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="cvv"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>CVV</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="123" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {paymentMethod === 'upi' && (
+                          <div className="space-y-4 border rounded-lg p-4">
+                            <FormField
+                              control={form.control}
+                              name="upiId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>UPI ID</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="yourname@paytm" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+
+                        {paymentMethod === 'netbanking' && (
+                          <div className="space-y-4 border rounded-lg p-4">
+                            <FormField
+                              control={form.control}
+                              name="bankName"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Select Bank</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Select your bank" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
+
+                        {paymentMethod === 'wallet' && (
+                          <div className="space-y-4 border rounded-lg p-4">
+                            <FormField
+                              control={form.control}
+                              name="walletType"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Select Wallet</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Paytm, PhonePe, Google Pay" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <Button type="submit" size="lg" className="w-full bg-luxury-gold hover:bg-luxury-gold-dark text-black font-semibold">
