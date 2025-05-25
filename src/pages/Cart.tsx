@@ -27,11 +27,6 @@ const Cart: React.FC = () => {
     }
   };
 
-  const handleCheckout = () => {
-    // Simulate payment processing
-    alert('Redirecting to payment gateway...');
-  };
-
   if (state.items.length === 0) {
     return (
       <div className="min-h-screen bg-background">
@@ -208,13 +203,14 @@ const Cart: React.FC = () => {
                   <span>{formatPrice(state.total * 1.18)}</span>
                 </div>
 
-                <Button
-                  onClick={handleCheckout}
-                  size="lg"
-                  className="w-full bg-luxury-gold hover:bg-luxury-gold-dark text-black font-semibold"
-                >
-                  Proceed to Checkout
-                </Button>
+                <Link to="/checkout">
+                  <Button
+                    size="lg"
+                    className="w-full bg-luxury-gold hover:bg-luxury-gold-dark text-black font-semibold"
+                  >
+                    Proceed to Checkout
+                  </Button>
+                </Link>
 
                 <div className="mt-4 text-center">
                   <p className="text-sm text-muted-foreground">
